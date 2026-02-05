@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACS Data Scraper</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            background: #e8f4fc;
+            border-color: #2980b9;
+        }
+
+        .drop-zone.has-file {
+            border-color: #27ae60;
+            background: #e8f8f0;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f8f0;
+            border-radius: 4px;
+            color: #27ae60;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .grid-2 > div,
+        .grid-3 > div {
+            margin-bottom: 0;
+        }
+
+        .grid-2 input,
+        .grid-3 input,
+        .grid-2 select,
+        .grid-3 select {
+            margin-bottom: 0;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .extraction-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .extraction-row input {
+            margin-bottom: 0;
+        }
+
+        .extraction-row button {
+            padding: 10px 15px;
+        }
+
+        .btn-remove {
+            background: #e74c3c;
+            padding: 10px 15px;
+        }
+
+        .btn-remove:hover {
+            background: #c0392b;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .results-table th,
+        .results-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .results-table th {
+            background: #34495e;
+            color: white;
+        }
+
+        .results-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .results-table tr:hover {
+            background: #e8f4fc;
+        }
+
+        .status {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .status.error {
+            background: #fdeaea;
+            color: #c0392b;
+            border: 1px solid #e74c3c;
+        }
+
+        .status.success {
+            background: #e8f8f0;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+
+        .status.info {
+            background: #e8f4fc;
+            color: #2980b9;
+            border: 1px solid #3498db;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
+
+        .geo-count {
+            font-size: 14px;
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+
+        #results-container {
+            max-height: 500px;
+            overflow: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>ACS Data Scraper</h1>
+    <p class="subtitle">Extract data from American Community Survey Excel files</p>
+
+    <!-- Section 1: File Upload -->
+    <div class="section">
+        <h2>1. Upload Excel File</h2>
+        <div class="drop-zone" id="drop-zone">
+            <p>Drag and drop an Excel file here, or click to select</p>
+            <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;">
+        </div>
+        <div id="file-info" class="file-info hidden"></div>
+    </div>
+
+    <!-- Section 2: Sheet Selection -->
+    <div class="section">
+        <h2>2. Select Sheet</h2>
+        <label for="sheet-select">Sheet</label>
+        <select id="sheet-select" disabled>
+            <option value="">Upload a file first</option>
+        </select>
+    </div>
+
+    <!-- Section 3: Geography Configuration -->
+    <div class="section">
+        <h2>3. Geography Configuration</h2>
+        <label>Geography Type</label>
+        <div class="radio-group">
+            <label><input type="radio" name="geo-type" value="states" checked> States (50 + DC)</label>
+            <label><input type="radio" name="geo-type" value="metros"> Metro Areas</label>
+            <label><input type="radio" name="geo-type" value="counties"> Counties</label>
+        </div>
+
+        <div id="custom-geo-container" class="hidden">
+            <label for="custom-geos">Geography List (one per line)</label>
+            <textarea id="custom-geos" placeholder="Paste geography names here, one per line..."></textarea>
+            <p class="geo-count" id="geo-count">0 geographies entered</p>
+        </div>
+    </div>
+
+    <!-- Section 4: Column Pattern -->
+    <div class="section">
+        <h2>4. Column Pattern</h2>
+        <div class="grid-3">
+            <div>
+                <label for="cols-per-geo">Columns per Geography</label>
+                <input type="number" id="cols-per-geo" value="6" min="1">
+            </div>
+            <div>
+                <label for="target-col">Target Column (1-based)</label>
+                <input type="number" id="target-col" value="1" min="1">
+            </div>
+            <div>
+                <label for="start-col">Starting Column</label>
+                <input type="text" id="start-col" value="B" maxlength="3">
+            </div>
+        </div>
+        <p class="help-text">Example: If each geography has 6 columns and you want the 1st column, starting at B</p>
+    </div>
+
+    <!-- Section 5: Row Specification -->
+    <div class="section">
+        <h2>5. Row Specifications</h2>
+        <div id="extraction-rows">
+            <div class="extraction-row">
+                <div>
+                    <label>Label</label>
+                    <input type="text" class="row-label" placeholder="e.g., Total Population">
+                </div>
+                <div>
+                    <label>Rows (comma-separated or range with dash)</label>
+                    <input type="text" class="row-spec" placeholder="e.g., 4 or 11-14 or 4,5,6">
+                </div>
+                <button class="btn-remove" onclick="removeExtractionRow(this)" title="Remove">×</button>
+            </div>
+        </div>
+        <button onclick="addExtractionRow()" class="btn-secondary">+ Add Row Specification</button>
+
+        <div style="margin-top: 20px;">
+            <label>
+                <input type="checkbox" id="calc-percentage"> Calculate Percentage
+            </label>
+            <div id="percentage-config" class="hidden" style="margin-top: 10px;">
+                <div class="grid-2">
+                    <div>
+                        <label for="numerator-label">Numerator (row spec label)</label>
+                        <input type="text" id="numerator-label" placeholder="Label of numerator row">
+                    </div>
+                    <div>
+                        <label for="denominator-label">Denominator (row spec label)</label>
+                        <input type="text" id="denominator-label" placeholder="Label of denominator row">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 6: Extract & Results -->
+    <div class="section">
+        <h2>6. Extract Data</h2>
+        <button id="extract-btn" onclick="extractData()" disabled>Extract Data</button>
+
+        <div id="status-container"></div>
+
+        <div id="results-section" class="hidden">
+            <div class="button-group">
+                <button onclick="copyToClipboard()" class="btn-success">Copy to Clipboard (TSV)</button>
+                <button onclick="exportCSV()" class="btn-secondary">Export CSV</button>
+            </div>
+            <div id="results-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Constants ====================
+        const STATES = [
+            'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California',
+            'Colorado', 'Connecticut', 'Delaware', 'District of Columbia', 'Florida',
+            'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana',
+            'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine',
+            'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+            'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
+            'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota',
+            'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island',
+            'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah',
+            'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin',
+            'Wyoming'
+        ];
+
+        // ==================== State ====================
+        let workbook = null;
+        let currentSheet = null;
+        let extractedData = [];
+
+        // ==================== DOM Elements ====================
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const sheetSelect = document.getElementById('sheet-select');
+        const customGeoContainer = document.getElementById('custom-geo-container');
+        const customGeos = document.getElementById('custom-geos');
+        const geoCount = document.getElementById('geo-count');
+        const extractBtn = document.getElementById('extract-btn');
+        const statusContainer = document.getElementById('status-container');
+        const resultsSection = document.getElementById('results-section');
+        const resultsContainer = document.getElementById('results-container');
+        const calcPercentage = document.getElementById('calc-percentage');
+        const percentageConfig = document.getElementById('percentage-config');
+
+        // ==================== Event Listeners ====================
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length) handleFileUpload(files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFileUpload(e.target.files[0]);
+        });
+
+        document.querySelectorAll('input[name="geo-type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                customGeoContainer.classList.toggle('hidden', e.target.value === 'states');
+            });
+        });
+
+        customGeos.addEventListener('input', updateGeoCount);
+
+        sheetSelect.addEventListener('change', () => {
+            if (workbook && sheetSelect.value !== '') {
+                currentSheet = workbook.Sheets[workbook.SheetNames[sheetSelect.value]];
+            }
+        });
+
+        calcPercentage.addEventListener('change', () => {
+            percentageConfig.classList.toggle('hidden', !calcPercentage.checked);
+        });
+
+        // ==================== File Handling ====================
+        function handleFileUpload(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    workbook = XLSX.read(e.target.result, { type: 'array' });
+                    populateSheetSelect();
+                    dropZone.classList.add('has-file');
+                    fileInfo.textContent = `Loaded: ${file.name}`;
+                    fileInfo.classList.remove('hidden');
+                    extractBtn.disabled = false;
+                    showStatus(`File loaded successfully: ${workbook.SheetNames.length} sheets found`, 'success');
+                } catch (err) {
+                    showStatus(`Error reading file: ${err.message}`, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateSheetSelect() {
+            sheetSelect.innerHTML = '';
+            workbook.SheetNames.forEach((name, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = `${idx + 1}. ${name}`;
+                sheetSelect.appendChild(option);
+            });
+            // Default to sheet 2 if available
+            if (workbook.SheetNames.length >= 2) {
+                sheetSelect.value = '1';
+            }
+            sheetSelect.disabled = false;
+            currentSheet = workbook.Sheets[workbook.SheetNames[sheetSelect.value]];
+        }
+
+        // ==================== Data Extraction ====================
+        function parseValue(cell) {
+            if (!cell) return null;
+            let val = cell.v;
+            if (typeof val === 'string') {
+                // Remove %, commas, and whitespace
+                val = val.replace(/[%,\s]/g, '');
+                val = parseFloat(val);
+            }
+            return isNaN(val) ? null : val;
+        }
+
+        function colLetterToIndex(letter) {
+            letter = letter.toUpperCase();
+            let index = 0;
+            for (let i = 0; i < letter.length; i++) {
+                index = index * 26 + (letter.charCodeAt(i) - 64);
+            }
+            return index - 1; // 0-based
+        }
+
+        function indexToColLetter(index) {
+            let letter = '';
+            index++;
+            while (index > 0) {
+                let mod = (index - 1) % 26;
+                letter = String.fromCharCode(65 + mod) + letter;
+                index = Math.floor((index - 1) / 26);
+            }
+            return letter;
+        }
+
+        function getColumnIndex(geoIndex, colsPerGeo, targetCol, startColIndex) {
+            return startColIndex + (geoIndex * colsPerGeo) + (targetCol - 1);
+        }
+
+        function parseRowSpec(spec) {
+            // Returns array of row numbers
+            const rows = [];
+            const parts = spec.split(',').map(s => s.trim());
+            for (const part of parts) {
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(n => parseInt(n.trim()));
+                    for (let i = start; i <= end; i++) {
+                        rows.push(i);
+                    }
+                } else {
+                    rows.push(parseInt(part));
+                }
+            }
+            return rows.filter(r => !isNaN(r));
+        }
+
+        function extractRows(rowSpec, colIndex, worksheet) {
+            const rows = parseRowSpec(rowSpec);
+            let sum = 0;
+            let hasValue = false;
+            for (const row of rows) {
+                const cellAddr = indexToColLetter(colIndex) + row;
+                const cell = worksheet[cellAddr];
+                const val = parseValue(cell);
+                if (val !== null) {
+                    sum += val;
+                    hasValue = true;
+                }
+            }
+            return hasValue ? sum : null;
+        }
+
+        function normalizeGeoName(name) {
+            return name.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function fuzzyMatch(searchName, columnHeaders) {
+            const normalized = normalizeGeoName(searchName);
+            let bestMatch = -1;
+            let bestScore = 0;
+
+            for (let i = 0; i < columnHeaders.length; i++) {
+                const header = columnHeaders[i];
+                if (!header) continue;
+                const normalizedHeader = normalizeGeoName(header);
+
+                // Exact match
+                if (normalizedHeader === normalized) {
+                    return i;
+                }
+
+                // Partial match scoring
+                if (normalizedHeader.includes(normalized) || normalized.includes(normalizedHeader)) {
+                    const score = Math.min(normalized.length, normalizedHeader.length) /
+                                  Math.max(normalized.length, normalizedHeader.length);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = i;
+                    }
+                }
+
+                // Word-based matching for metro areas
+                const searchWords = normalized.split(' ');
+                const headerWords = normalizedHeader.split(' ');
+                const matchingWords = searchWords.filter(w => headerWords.some(hw => hw.includes(w) || w.includes(hw)));
+                const wordScore = matchingWords.length / Math.max(searchWords.length, headerWords.length);
+                if (wordScore > bestScore && wordScore > 0.5) {
+                    bestScore = wordScore;
+                    bestMatch = i;
+                }
+            }
+
+            return bestScore > 0.3 ? bestMatch : -1;
+        }
+
+        function getColumnHeaders(worksheet, headerRow, startColIndex, colsPerGeo, numGeos) {
+            const headers = [];
+            for (let i = 0; i < numGeos; i++) {
+                const colIndex = getColumnIndex(i, colsPerGeo, 1, startColIndex);
+                const cellAddr = indexToColLetter(colIndex) + headerRow;
+                const cell = worksheet[cellAddr];
+                headers.push(cell ? String(cell.v) : '');
+            }
+            return headers;
+        }
+
+        function extractData() {
+            if (!workbook || !currentSheet) {
+                showStatus('Please upload a file first', 'error');
+                return;
+            }
+
+            const geoType = document.querySelector('input[name="geo-type"]:checked').value;
+            const colsPerGeo = parseInt(document.getElementById('cols-per-geo').value);
+            const targetCol = parseInt(document.getElementById('target-col').value);
+            const startCol = document.getElementById('start-col').value.toUpperCase();
+            const startColIndex = colLetterToIndex(startCol);
+
+            // Get extraction specifications
+            const extractionSpecs = [];
+            document.querySelectorAll('.extraction-row').forEach(row => {
+                const label = row.querySelector('.row-label').value.trim();
+                const spec = row.querySelector('.row-spec').value.trim();
+                if (label && spec) {
+                    extractionSpecs.push({ label, spec });
+                }
+            });
+
+            if (extractionSpecs.length === 0) {
+                showStatus('Please add at least one row specification', 'error');
+                return;
+            }
+
+            // Get geographies
+            let geographies;
+            if (geoType === 'states') {
+                geographies = STATES;
+            } else {
+                geographies = customGeos.value.split('\n').map(s => s.trim()).filter(s => s);
+                if (geographies.length === 0) {
+                    showStatus('Please enter at least one geography', 'error');
+                    return;
+                }
+            }
+
+            // Get column headers for matching (assume row 1 for headers)
+            const range = XLSX.utils.decode_range(currentSheet['!ref']);
+            const maxCols = range.e.c - startColIndex + 1;
+            const estimatedGeos = Math.ceil(maxCols / colsPerGeo);
+            const columnHeaders = getColumnHeaders(currentSheet, 1, startColIndex, colsPerGeo, estimatedGeos);
+
+            // Extract data
+            extractedData = [];
+            let notFound = [];
+
+            for (const geo of geographies) {
+                const geoIndex = fuzzyMatch(geo, columnHeaders);
+                if (geoIndex === -1) {
+                    notFound.push(geo);
+                    continue;
+                }
+
+                const colIndex = getColumnIndex(geoIndex, colsPerGeo, targetCol, startColIndex);
+                const row = { geography: geo };
+
+                for (const spec of extractionSpecs) {
+                    row[spec.label] = extractRows(spec.spec, colIndex, currentSheet);
+                }
+
+                // Calculate percentage if enabled
+                if (calcPercentage.checked) {
+                    const numLabel = document.getElementById('numerator-label').value.trim();
+                    const denLabel = document.getElementById('denominator-label').value.trim();
+                    if (numLabel && denLabel && row[numLabel] !== null && row[denLabel] !== null && row[denLabel] !== 0) {
+                        row['Percentage'] = (row[numLabel] / row[denLabel] * 100).toFixed(2);
+                    }
+                }
+
+                extractedData.push(row);
+            }
+
+            if (notFound.length > 0) {
+                showStatus(`Warning: ${notFound.length} geographies not found: ${notFound.slice(0, 5).join(', ')}${notFound.length > 5 ? '...' : ''}`, 'info');
+            } else {
+                showStatus(`Successfully extracted data for ${extractedData.length} geographies`, 'success');
+            }
+
+            displayResults();
+        }
+
+        function displayResults() {
+            if (extractedData.length === 0) {
+                resultsSection.classList.add('hidden');
+                return;
+            }
+
+            resultsSection.classList.remove('hidden');
+
+            const headers = Object.keys(extractedData[0]);
+            let html = '<table class="results-table"><thead><tr>';
+            headers.forEach(h => html += `<th>${h}</th>`);
+            html += '</tr></thead><tbody>';
+
+            extractedData.forEach(row => {
+                html += '<tr>';
+                headers.forEach(h => {
+                    const val = row[h];
+                    html += `<td>${val !== null ? val : ''}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            resultsContainer.innerHTML = html;
+        }
+
+        // ==================== Output Functions ====================
+        function formatOutput(data, separator = '\t') {
+            if (data.length === 0) return '';
+
+            const headers = Object.keys(data[0]);
+            const lines = [headers.join(separator)];
+
+            data.forEach(row => {
+                const values = headers.map(h => row[h] !== null ? row[h] : '');
+                lines.push(values.join(separator));
+            });
+
+            return lines.join('\n');
+        }
+
+        function copyToClipboard() {
+            const text = formatOutput(extractedData, '\t');
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus('Copied to clipboard!', 'success');
+            }).catch(err => {
+                showStatus('Failed to copy: ' + err.message, 'error');
+            });
+        }
+
+        function exportCSV() {
+            const text = formatOutput(extractedData, ',');
+            const blob = new Blob([text], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'acs-data.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== UI Helpers ====================
+        function showStatus(message, type) {
+            statusContainer.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function updateGeoCount() {
+            const count = customGeos.value.split('\n').map(s => s.trim()).filter(s => s).length;
+            geoCount.textContent = `${count} geographies entered`;
+        }
+
+        function addExtractionRow() {
+            const container = document.getElementById('extraction-rows');
+            const row = document.createElement('div');
+            row.className = 'extraction-row';
+            row.innerHTML = `
+                <div>
+                    <label>Label</label>
+                    <input type="text" class="row-label" placeholder="e.g., Total Population">
+                </div>
+                <div>
+                    <label>Rows (comma-separated or range with dash)</label>
+                    <input type="text" class="row-spec" placeholder="e.g., 4 or 11-14 or 4,5,6">
+                </div>
+                <button class="btn-remove" onclick="removeExtractionRow(this)" title="Remove">×</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeExtractionRow(btn) {
+            const rows = document.querySelectorAll('.extraction-row');
+            if (rows.length > 1) {
+                btn.closest('.extraction-row').remove();
+            }
+        }
+    </script>
+</body>
+</html>
