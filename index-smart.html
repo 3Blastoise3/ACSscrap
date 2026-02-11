@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACS Data Scraper - Smart Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .section h3 {
+            font-size: 1em;
+            color: #555;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .status {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .status.error {
+            background: #fdeaea;
+            color: #c0392b;
+            border: 1px solid #e74c3c;
+        }
+
+        .status.success {
+            background: #e8f8f0;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+
+        .status.info {
+            background: #e8f4fc;
+            color: #2980b9;
+            border: 1px solid #3498db;
+        }
+
+        .info-box {
+            background: #e8f4fc;
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .info-box a {
+            color: #2980b9;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-top: 3px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            max-height: 300px;
+            overflow: auto;
+            display: block;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        .preview-table th {
+            background: #34495e;
+            color: white;
+            position: sticky;
+            top: 0;
+            white-space: normal;
+            word-break: break-word;
+            min-width: 120px;
+            max-width: 250px;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+
+        .preview-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .results-table th,
+        .results-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .results-table th {
+            background: #34495e;
+            color: white;
+        }
+
+        .results-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .results-table tr:hover {
+            background: #e8f4fc;
+        }
+
+        #results-container {
+            max-height: 500px;
+            overflow: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .select-all-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        #column-search,
+        #row-search {
+            background: white;
+            border: 2px solid #3498db;
+            font-weight: 500;
+        }
+
+        #column-search:focus,
+        #row-search:focus {
+            border-color: #2980b9;
+        }
+
+        #percentage-calculation {
+            background: #f8fafc;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        #percentage-calculation h3 {
+            margin-top: 0;
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <h1>ACS Data Scraper - Smart Edition</h1>
+    <p class="subtitle">Automated data extraction with intelligent column/row detection</p>
+
+    <!-- Section 1: Load Data -->
+    <div class="section">
+        <h2>1. Load Data</h2>
+
+        <div class="info-box">
+            <strong>Quick Start:</strong> Paste a table ID and click "Load Data"<br>
+            <strong>Popular tables:</strong>
+            <a href="#" onclick="document.getElementById('data-input').value='B01001'; return false;">B01001</a> (Age/Sex),
+            <a href="#" onclick="document.getElementById('data-input').value='B19013'; return false;">B19013</a> (Median Income),
+            <a href="#" onclick="document.getElementById('data-input').value='B25001'; return false;">B25001</a> (Housing Units),
+            <a href="#" onclick="document.getElementById('data-input').value='S1901'; return false;">S1901</a> (Income Table)<br>
+            <strong>Table types:</strong> B = Detailed, S = Subject, DP = Data Profile, CP = Comparison Profile
+        </div>
+
+        <div class="input-group">
+            <label for="data-input">Table ID, Census.gov Link, or File URL</label>
+            <input type="text" id="data-input" placeholder="e.g., B01001 or https://data.census.gov/table/...">
+            <p class="help-text">Examples: "B01001", "S1901", or paste a full data.census.gov URL</p>
+        </div>
+
+        <div class="grid-2">
+            <div>
+                <label for="survey-type">Survey Type</label>
+                <select id="survey-type">
+                    <option value="acs1">1-Year Estimates (most recent)</option>
+                    <option value="acs5">5-Year Estimates (more reliable)</option>
+                </select>
+                <p class="help-text">1-Year: Latest data, larger areas only. 5-Year: More stable, all areas</p>
+            </div>
+            <div>
+                <label for="data-year">Year</label>
+                <select id="data-year">
+                    <option value="2024" selected>2024</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                    <option value="2021">2021</option>
+                    <option value="2020">2020</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="api-key">API Key (optional but recommended)</label>
+            <input type="text" id="api-key" placeholder="Optional for higher rate limits">
+            <p class="help-text"><a href="https://api.census.gov/data/key_signup.html" target="_blank">Get free API key</a> - Without key: 500 requests/day. With key: unlimited</p>
+        </div>
+
+        <div class="button-group">
+            <button onclick="loadData()" id="load-btn">Load Data</button>
+            <button onclick="document.getElementById('file-input').click()" class="btn-secondary">Or Upload Excel File</button>
+            <button onclick="testAPI()" class="btn-secondary">Test API Connection</button>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;">
+
+        <div id="load-status"></div>
+    </div>
+
+    <!-- Section 2: Select Sheet (for Excel uploads) -->
+    <div class="section hidden" id="sheet-section">
+        <h2>2. Select Sheet</h2>
+        <select id="sheet-select">
+            <option value="">Select a sheet</option>
+        </select>
+        <button onclick="analyzeSheet()" id="analyze-btn">Analyze Sheet</button>
+        <div id="sheet-status"></div>
+    </div>
+
+    <!-- Section 3: Preview & Configure -->
+    <div class="section hidden" id="preview-section">
+        <h2>3. Preview & Configure Extraction</h2>
+
+        <div id="data-preview-container" class="hidden">
+            <h3>Data Preview (First 10 rows)</h3>
+            <div style="overflow-x: auto;">
+                <table class="preview-table" id="data-preview"></table>
+            </div>
+        </div>
+
+        <div id="column-selection" class="hidden">
+            <h3>Select Geography Columns</h3>
+            <p class="help-text">Choose which columns contain geography names (states, counties, metro areas, etc.)</p>
+            <button onclick="selectAllGeographies()" class="btn-secondary select-all-btn">Select All</button>
+            <button onclick="deselectAllGeographies()" class="btn-secondary select-all-btn">Deselect All</button>
+            <div id="geo-columns" class="checkbox-grid"></div>
+        </div>
+
+        <div id="data-column-selection" class="hidden">
+            <h3>Select Data Columns to Extract</h3>
+            <p class="help-text">Choose which data columns you want to extract</p>
+            <input type="text" id="column-search" placeholder="Search columns by name..." style="margin-bottom: 10px;">
+            <button onclick="selectAllDataColumns()" class="btn-secondary select-all-btn">Select All</button>
+            <button onclick="deselectAllDataColumns()" class="btn-secondary select-all-btn">Deselect All</button>
+            <div id="data-columns" class="checkbox-grid"></div>
+        </div>
+
+        <div id="percentage-calculation" class="hidden">
+            <h3>Calculate Percentages (Optional)</h3>
+            <p class="help-text">Select two columns to calculate a percentage (numerator ÷ denominator × 100)</p>
+            <div class="grid-2" style="margin-bottom: 10px;">
+                <div>
+                    <label for="numerator-col">Numerator Column</label>
+                    <select id="numerator-col">
+                        <option value="">Select column...</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="denominator-col">Denominator Column</label>
+                    <select id="denominator-col">
+                        <option value="">Select column...</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label for="percentage-label">Percentage Column Name</label>
+                <input type="text" id="percentage-label" placeholder="e.g., Percent Female">
+            </div>
+            <button onclick="addPercentageCalculation()" class="btn-secondary">Add Percentage Column</button>
+            <div id="percentage-list" style="margin-top: 10px;"></div>
+        </div>
+
+        <div id="row-selection" class="hidden">
+            <h3>Select Rows to Extract</h3>
+            <p class="help-text">Choose which rows you want to include in the extraction</p>
+            <input type="text" id="row-search" placeholder="Search rows..." style="margin-bottom: 10px;">
+            <button onclick="selectAllRows()" class="btn-secondary select-all-btn">Select All</button>
+            <button onclick="deselectAllRows()" class="btn-secondary select-all-btn">Deselect All</button>
+            <div id="row-checkboxes" class="checkbox-grid"></div>
+        </div>
+    </div>
+
+    <!-- Section 4: Extract & Results -->
+    <div class="section hidden" id="extract-section">
+        <h2>4. Extract Data</h2>
+        <button onclick="extractData()" id="extract-btn">Extract Selected Data</button>
+        <div id="extract-status"></div>
+
+        <div id="results-section" class="hidden">
+            <div class="button-group">
+                <button onclick="copyToClipboard()" class="btn-success">Copy to Clipboard (TSV)</button>
+                <button onclick="exportCSV()" class="btn-secondary">Export CSV</button>
+                <button onclick="exportExcel()" class="btn-secondary">Export Excel</button>
+            </div>
+            <div id="results-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== State ====================
+        let workbook = null;
+        let currentSheet = null;
+        let sheetData = [];
+        let columnHeaders = [];
+        let columnLabels = []; // Human-readable labels for API columns
+        let rowLabels = [];
+        let extractedData = [];
+        let dataSource = 'excel'; // 'excel' or 'api'
+        let percentageCalculations = []; // [{numerator, denominator, label}]
+
+        // ==================== DOM Elements ====================
+        const fileInput = document.getElementById('file-input');
+        const sheetSection = document.getElementById('sheet-section');
+        const sheetSelect = document.getElementById('sheet-select');
+        const previewSection = document.getElementById('preview-section');
+        const extractSection = document.getElementById('extract-section');
+
+        // ==================== Event Listeners ====================
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFileUpload(e.target.files[0]);
+        });
+
+        document.getElementById('row-search').addEventListener('input', (e) => {
+            filterRows(e.target.value);
+        });
+
+        document.getElementById('column-search').addEventListener('input', (e) => {
+            filterColumns(e.target.value);
+        });
+
+        // Update available years based on survey type
+        document.getElementById('survey-type').addEventListener('change', (e) => {
+            updateYearOptions(e.target.value);
+        });
+
+        function updateYearOptions(surveyType) {
+            const yearSelect = document.getElementById('data-year');
+            const currentYear = new Date().getFullYear();
+
+            yearSelect.innerHTML = '';
+
+            if (surveyType === 'acs1') {
+                // 1-year estimates: 2005-2024 (skipping 2020 due to COVID)
+                // 2024 data is released in late 2025, so it should be available now
+                for (let year = 2024; year >= 2005; year--) {
+                    if (year === 2020) continue; // No 2020 1-year data
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    if (year === 2024) option.selected = true;
+                    yearSelect.appendChild(option);
+                }
+            } else {
+                // 5-year estimates: 2009-2023
+                // 2023 5-year data (2019-2023) should be available
+                for (let year = 2023; year >= 2009; year--) {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    if (year === 2023) option.selected = true;
+                    yearSelect.appendChild(option);
+                }
+            }
+        }
+
+        // Initialize year options on load
+        updateYearOptions('acs1');
+
+        // ==================== API Testing ====================
+        async function testAPI() {
+            const statusEl = document.getElementById('load-status');
+            const year = document.getElementById('data-year').value;
+            const surveyType = document.getElementById('survey-type').value;
+
+            statusEl.innerHTML = '<div class="status info">Testing Census API connection... <span class="loading"></span></div>';
+
+            try {
+                // Test with a simple query
+                const testUrl = `https://api.census.gov/data/${year}/acs/${surveyType}?get=NAME&for=state:01`;
+                console.log('Testing URL:', testUrl);
+
+                const response = await fetch(testUrl);
+                const data = await response.json();
+
+                if (response.ok && data.length > 0) {
+                    statusEl.innerHTML = `<div class="status success">✓ API connection successful!<br>
+                        Connected to ${surveyType.toUpperCase()} ${year}<br>
+                        Sample data: ${JSON.stringify(data)}<br>
+                        You can now load tables.</div>`;
+                } else {
+                    throw new Error('API returned unexpected data');
+                }
+            } catch (err) {
+                console.error('API test error:', err);
+                statusEl.innerHTML = `<div class="status error">✗ API connection failed: ${err.message}<br><br>
+                    <strong>This could mean:</strong><br>
+                    • Your browser is blocking the Census API (CORS issue)<br>
+                    • The ${surveyType.toUpperCase()} ${year} dataset is not available<br>
+                    • Network connectivity issues<br><br>
+                    <strong>Solutions:</strong><br>
+                    1. Try a different year or survey type<br>
+                    2. Use "Upload Excel File" instead<br>
+                    3. Download data manually from <a href="https://data.census.gov" target="_blank">data.census.gov</a></div>`;
+            }
+        }
+
+        // ==================== Load Data ====================
+        async function loadData() {
+            const input = document.getElementById('data-input').value.trim();
+            const year = document.getElementById('data-year').value;
+            const surveyType = document.getElementById('survey-type').value;
+            const apiKey = document.getElementById('api-key').value.trim();
+            const statusEl = document.getElementById('load-status');
+
+            if (!input) {
+                statusEl.innerHTML = '<div class="status error">Please enter a table ID or URL</div>';
+                return;
+            }
+
+            statusEl.innerHTML = '<div class="status info">Loading data... <span class="loading"></span></div>';
+
+            // Parse input to extract table ID
+            let tableId = input;
+            if (input.includes('census.gov')) {
+                // Extract table ID from URL
+                const match = input.match(/table[?/]([A-Z0-9]+)/i) ||
+                             input.match(/ACSDT([0-9]+Y[0-9]+)\.([A-Z0-9]+)/i) ||
+                             input.match(/([A-Z][0-9]{5}[A-Z]?)/i);
+                if (match) {
+                    tableId = match[2] || match[1];
+                }
+            }
+
+            tableId = tableId.toUpperCase().trim();
+
+            try {
+                await fetchFromCensusAPI(tableId, year, surveyType, apiKey);
+            } catch (err) {
+                console.error('Load error:', err);
+                statusEl.innerHTML = `<div class="status error">Error loading data: ${err.message}<br><br>
+                    <strong>Troubleshooting:</strong><br>
+                    • Make sure table "${tableId}" exists for ${surveyType.toUpperCase()} ${year}<br>
+                    • Try a different year or survey type<br>
+                    • Some tables are only in ACS5 (5-year) or ACS1 (1-year)<br>
+                    • If problem persists, use "Upload Excel File" option</div>`;
+            }
+        }
+
+        async function fetchFromCensusAPI(tableId, year, surveyType, apiKey) {
+            const statusEl = document.getElementById('load-status');
+
+            try {
+                // Determine dataset based on table prefix
+                let dataset = surveyType;
+                let tablePrefix = tableId.charAt(0);
+
+                // S tables use subject tables, DP/CP use profile
+                if (tablePrefix === 'S') {
+                    dataset = `${surveyType}/subject`;
+                } else if (tablePrefix === 'D' && tableId.startsWith('DP')) {
+                    dataset = `${surveyType}/profile`;
+                } else if (tablePrefix === 'C' && tableId.startsWith('CP')) {
+                    dataset = `${surveyType}/cprofile`;
+                }
+
+                console.log(`Loading ${tableId} from dataset: ${dataset}`);
+
+                // Fetch variable labels/metadata first
+                statusEl.innerHTML = '<div class="status info">Loading variable labels... <span class="loading"></span></div>';
+                const labelsUrl = `https://api.census.gov/data/${year}/acs/${dataset}/groups/${tableId}.json`;
+                console.log('Fetching labels from:', labelsUrl);
+
+                let variableLabels = {};
+                try {
+                    const labelsResponse = await fetch(labelsUrl);
+                    if (labelsResponse.ok) {
+                        const labelsData = await labelsResponse.json();
+                        if (labelsData.variables) {
+                            variableLabels = labelsData.variables;
+                            console.log('Loaded', Object.keys(variableLabels).length, 'variable labels');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch variable labels:', e);
+                }
+
+                // Build the API query - use group query for all table types
+                statusEl.innerHTML = '<div class="status info">Loading data... <span class="loading"></span></div>';
+                let apiUrl = `https://api.census.gov/data/${year}/acs/${dataset}?get=group(${tableId})&for=state:*`;
+
+                if (apiKey) {
+                    apiUrl += `&key=${apiKey}`;
+                }
+
+                console.log('Fetching data from:', apiUrl);
+                const response = await fetch(apiUrl);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+
+                    // Try to parse error message
+                    let errorMsg = `API returned status ${response.status}`;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson && errorJson[0]) {
+                            errorMsg = errorJson[0];
+                        }
+                    } catch (e) {
+                        // Not JSON, use text
+                        if (errorText.length > 0 && errorText.length < 200) {
+                            errorMsg = errorText;
+                        }
+                    }
+
+                    // Provide specific error guidance
+                    if (response.status === 400) {
+                        errorMsg += `\n\nPossible causes:\n`;
+                        errorMsg += `• Table ${tableId} may not exist in ${surveyType.toUpperCase()} ${year}\n`;
+                        errorMsg += `• Try switching between 1-Year and 5-Year estimates\n`;
+                        errorMsg += `• Some tables only exist in certain years`;
+                    } else if (response.status === 404) {
+                        errorMsg = `Table ${tableId} not found in ${surveyType.toUpperCase()} ${year}. Try a different year or survey type.`;
+                    }
+
+                    throw new Error(errorMsg);
+                }
+
+                const rawData = await response.json();
+                console.log('Received data:', rawData.length, 'rows', rawData[0].length, 'columns');
+
+                if (!rawData || rawData.length < 2) {
+                    throw new Error('No data returned from API');
+                }
+
+                // Convert API data to sheet-like structure
+                const headers = rawData[0];
+                const rows = rawData.slice(1);
+
+                // Create human-readable column labels
+                columnLabels = headers.map(header => {
+                    if (header === 'NAME' || header === 'state') {
+                        return header; // Keep geography column names as-is
+                    }
+
+                    // Look up the label for this variable
+                    if (variableLabels[header] && variableLabels[header].label) {
+                        let label = variableLabels[header].label;
+
+                        // Clean up the label
+                        // Remove "Estimate!!" and "Total!!" prefixes
+                        label = label.replace(/^Estimate!!/g, '');
+                        label = label.replace(/!!Estimate/g, '');
+                        label = label.replace(/^Total!!/g, '');
+
+                        // Replace !! with > for hierarchy
+                        label = label.replace(/!!/g, ' > ');
+
+                        // Trim and clean up
+                        label = label.trim();
+
+                        // If still too long, try to shorten
+                        if (label.length > 80) {
+                            const parts = label.split(' > ');
+                            // Take last 2-3 parts
+                            label = parts.slice(-3).join(' > ');
+                        }
+
+                        return label || header;
+                    }
+
+                    return header; // Fallback to original header
+                });
+
+                // Create a workbook-like structure with labels
+                sheetData = [columnLabels, ...rows];
+                columnHeaders = columnLabels; // Use labels instead of codes
+                dataSource = 'api';
+
+                const geoCount = rows.length;
+                const varCount = headers.length;
+
+                statusEl.innerHTML = `<div class="status success">✓ Successfully loaded table ${tableId}<br>
+                    Dataset: ${surveyType.toUpperCase()} ${year} (${tablePrefix === 'B' ? 'Detailed' : tablePrefix === 'S' ? 'Subject' : tablePrefix === 'D' ? 'Profile' : 'Comparison'} Table)<br>
+                    Data: ${geoCount} states × ${varCount} variables</div>`;
+
+                // Automatically proceed to preview
+                analyzeAPIData();
+
+            } catch (err) {
+                console.error('API fetch error:', err);
+                throw new Error(`${err.message}`);
+            }
+        }
+
+        function analyzeAPIData() {
+            // Extract column information
+            const headers = sheetData[0];
+
+            // Geography columns are typically named 'state', 'NAME', etc.
+            const geoColIndices = [];
+            const dataColIndices = [];
+
+            headers.forEach((header, idx) => {
+                if (header === 'NAME' || header === 'state' || header.toLowerCase().includes('name')) {
+                    geoColIndices.push(idx);
+                } else if (!header.includes('_EA') && !header.includes('_M') && !header.includes('_MA')) {
+                    // Skip margin of error columns
+                    dataColIndices.push(idx);
+                }
+            });
+
+            // Show preview
+            showDataPreview(sheetData.slice(0, 11)); // Header + 10 rows
+
+            // Show column selections
+            showColumnSelection(geoColIndices, dataColIndices);
+
+            // Populate percentage dropdowns
+            populatePercentageDropdowns();
+            document.getElementById('percentage-calculation').classList.remove('hidden');
+
+            previewSection.classList.remove('hidden');
+            extractSection.classList.remove('hidden');
+        }
+
+        // ==================== File Upload ====================
+        function handleFileUpload(file) {
+            const statusEl = document.getElementById('load-status');
+            statusEl.innerHTML = '<div class="status info">Reading file... <span class="loading"></span></div>';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    workbook = XLSX.read(e.target.result, { type: 'array' });
+                    populateSheetSelect();
+                    dataSource = 'excel';
+                    statusEl.innerHTML = `<div class="status success">File loaded: ${workbook.SheetNames.length} sheets found</div>`;
+                    sheetSection.classList.remove('hidden');
+                } catch (err) {
+                    statusEl.innerHTML = `<div class="status error">Error reading file: ${err.message}</div>`;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateSheetSelect() {
+            sheetSelect.innerHTML = '<option value="">Select a sheet</option>';
+            workbook.SheetNames.forEach((name, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = `${idx + 1}. ${name}`;
+                sheetSelect.appendChild(option);
+            });
+        }
+
+        function analyzeSheet() {
+            const sheetIdx = sheetSelect.value;
+            if (sheetIdx === '') {
+                document.getElementById('sheet-status').innerHTML = '<div class="status error">Please select a sheet</div>';
+                return;
+            }
+
+            currentSheet = workbook.Sheets[workbook.SheetNames[sheetIdx]];
+
+            // Convert sheet to JSON
+            sheetData = XLSX.utils.sheet_to_json(currentSheet, { header: 1, defval: '' });
+
+            if (sheetData.length === 0) {
+                document.getElementById('sheet-status').innerHTML = '<div class="status error">Sheet is empty</div>';
+                return;
+            }
+
+            // Analyze structure
+            analyzeSheetStructure();
+
+            document.getElementById('sheet-status').innerHTML = '<div class="status success">Sheet analyzed successfully</div>';
+            previewSection.classList.remove('hidden');
+            extractSection.classList.remove('hidden');
+        }
+
+        function analyzeSheetStructure() {
+            // Assume first row is headers
+            columnHeaders = sheetData[0] || [];
+
+            // Get row labels (first column values)
+            rowLabels = sheetData.slice(1).map((row, idx) => ({
+                index: idx + 1,
+                label: row[0] || `Row ${idx + 1}`,
+                preview: row.slice(0, 5).join(' | ')
+            }));
+
+            // Detect geography columns (columns with state names, etc.)
+            const geoColIndices = detectGeographyColumns();
+            const dataColIndices = columnHeaders.map((_, idx) => idx).filter(idx => !geoColIndices.includes(idx) && idx > 0);
+
+            // Show preview
+            showDataPreview(sheetData.slice(0, 11));
+
+            // Show column selections
+            showColumnSelection(geoColIndices, dataColIndices);
+
+            // Show row selections
+            showRowSelection();
+
+            // Populate percentage dropdowns
+            populatePercentageDropdowns();
+            document.getElementById('percentage-calculation').classList.remove('hidden');
+        }
+
+        function detectGeographyColumns() {
+            const geoKeywords = ['state', 'county', 'metro', 'geography', 'area', 'name', 'location'];
+            const geoIndices = [];
+
+            columnHeaders.forEach((header, idx) => {
+                const headerLower = String(header).toLowerCase();
+                if (geoKeywords.some(keyword => headerLower.includes(keyword))) {
+                    geoIndices.push(idx);
+                }
+            });
+
+            // If nothing found, assume first column
+            return geoIndices.length > 0 ? geoIndices : [0];
+        }
+
+        // ==================== Display Functions ====================
+        function showDataPreview(data) {
+            const previewContainer = document.getElementById('data-preview-container');
+            const previewTable = document.getElementById('data-preview');
+
+            if (data.length === 0) {
+                previewContainer.classList.add('hidden');
+                return;
+            }
+
+            let html = '<thead><tr>';
+            data[0].forEach((cell, idx) => {
+                const cellText = cell || '(empty)';
+                // Show column number only for Excel files, not API data with labels
+                const prefix = dataSource === 'api' ? '' : `Col ${idx}: `;
+                html += `<th title="${cellText}">${prefix}${cellText}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            data.slice(1).forEach(row => {
+                html += '<tr>';
+                row.forEach(cell => {
+                    html += `<td>${cell !== null && cell !== undefined ? cell : ''}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody>';
+            previewTable.innerHTML = html;
+            previewContainer.classList.remove('hidden');
+        }
+
+        function showColumnSelection(geoIndices, dataIndices) {
+            const geoContainer = document.getElementById('geo-columns');
+            const dataContainer = document.getElementById('data-columns');
+
+            // Geography columns
+            let geoHtml = '';
+            columnHeaders.forEach((header, idx) => {
+                const checked = geoIndices.includes(idx) ? 'checked' : '';
+                const displayHeader = header || '(empty)';
+                geoHtml += `
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="geo-col-${idx}" value="${idx}" ${checked}>
+                        <label for="geo-col-${idx}" title="${displayHeader}">${displayHeader}</label>
+                    </div>
+                `;
+            });
+            geoContainer.innerHTML = geoHtml;
+
+            // Data columns
+            let dataHtml = '';
+            dataIndices.forEach(idx => {
+                const header = columnHeaders[idx];
+                const headerStr = String(header);
+
+                // Skip margin of error columns by default
+                const isMarginError = headerStr.includes('Margin') ||
+                                     headerStr.includes('Error') ||
+                                     headerStr.includes('Margin of Error') ||
+                                     headerStr.endsWith('_M') ||
+                                     headerStr.endsWith('_MA') ||
+                                     headerStr.includes('MOE');
+                const checked = !isMarginError ? 'checked' : '';
+
+                dataHtml += `
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="data-col-${idx}" value="${idx}" ${checked}>
+                        <label for="data-col-${idx}" title="${headerStr}">${header || '(empty)'}</label>
+                    </div>
+                `;
+            });
+            dataContainer.innerHTML = dataHtml;
+
+            document.getElementById('column-selection').classList.remove('hidden');
+            document.getElementById('data-column-selection').classList.remove('hidden');
+        }
+
+        function showRowSelection() {
+            const container = document.getElementById('row-checkboxes');
+
+            let html = '';
+            rowLabels.forEach((rowInfo, idx) => {
+                html += `
+                    <div class="checkbox-item row-checkbox-item" data-label="${rowInfo.label.toLowerCase()}">
+                        <input type="checkbox" id="row-${idx}" value="${rowInfo.index}" checked>
+                        <label for="row-${idx}">Row ${rowInfo.index}: ${rowInfo.label}</label>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+
+            document.getElementById('row-selection').classList.remove('hidden');
+        }
+
+        function filterRows(searchTerm) {
+            const items = document.querySelectorAll('.row-checkbox-item');
+            const term = searchTerm.toLowerCase();
+
+            items.forEach(item => {
+                const label = item.getAttribute('data-label');
+                if (label.includes(term)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterColumns(searchTerm) {
+            const items = document.querySelectorAll('#data-columns .checkbox-item');
+            const term = searchTerm.toLowerCase();
+
+            items.forEach(item => {
+                const label = item.querySelector('label').textContent.toLowerCase();
+                if (label.includes(term)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // ==================== Selection Helpers ====================
+        function selectAllGeographies() {
+            document.querySelectorAll('#geo-columns input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllGeographies() {
+            document.querySelectorAll('#geo-columns input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        function selectAllDataColumns() {
+            document.querySelectorAll('#data-columns input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllDataColumns() {
+            document.querySelectorAll('#data-columns input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        function selectAllRows() {
+            document.querySelectorAll('#row-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllRows() {
+            document.querySelectorAll('#row-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        // ==================== Percentage Calculations ====================
+        function populatePercentageDropdowns() {
+            const numeratorSelect = document.getElementById('numerator-col');
+            const denominatorSelect = document.getElementById('denominator-col');
+
+            numeratorSelect.innerHTML = '<option value="">Select column...</option>';
+            denominatorSelect.innerHTML = '<option value="">Select column...</option>';
+
+            // Populate with all data columns
+            columnHeaders.forEach((header, idx) => {
+                // Skip geography columns
+                if (header !== 'NAME' && header !== 'state') {
+                    const option1 = document.createElement('option');
+                    option1.value = idx;
+                    option1.textContent = header;
+                    numeratorSelect.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = idx;
+                    option2.textContent = header;
+                    denominatorSelect.appendChild(option2);
+                }
+            });
+        }
+
+        function addPercentageCalculation() {
+            const numeratorIdx = document.getElementById('numerator-col').value;
+            const denominatorIdx = document.getElementById('denominator-col').value;
+            const label = document.getElementById('percentage-label').value.trim();
+
+            if (!numeratorIdx || !denominatorIdx) {
+                alert('Please select both numerator and denominator columns');
+                return;
+            }
+
+            if (!label) {
+                alert('Please enter a name for the percentage column');
+                return;
+            }
+
+            const numeratorLabel = columnHeaders[parseInt(numeratorIdx)];
+            const denominatorLabel = columnHeaders[parseInt(denominatorIdx)];
+
+            percentageCalculations.push({
+                numeratorIdx: parseInt(numeratorIdx),
+                denominatorIdx: parseInt(denominatorIdx),
+                numeratorLabel: numeratorLabel,
+                denominatorLabel: denominatorLabel,
+                label: label
+            });
+
+            // Auto-check the columns needed for this calculation
+            const numCheckbox = document.getElementById(`data-col-${numeratorIdx}`);
+            const denCheckbox = document.getElementById(`data-col-${denominatorIdx}`);
+
+            if (numCheckbox) numCheckbox.checked = true;
+            if (denCheckbox) denCheckbox.checked = true;
+
+            updatePercentageList();
+
+            // Clear inputs
+            document.getElementById('numerator-col').value = '';
+            document.getElementById('denominator-col').value = '';
+            document.getElementById('percentage-label').value = '';
+        }
+
+        function updatePercentageList() {
+            const listEl = document.getElementById('percentage-list');
+
+            if (percentageCalculations.length === 0) {
+                listEl.innerHTML = '';
+                return;
+            }
+
+            let html = '<div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px;">';
+            html += '<strong>Percentage Columns to Add:</strong><br>';
+
+            percentageCalculations.forEach((calc, idx) => {
+                html += `<div style="margin: 5px 0; padding: 5px; background: white; border-radius: 3px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px;">
+                        <strong>${calc.label}</strong> = (${calc.numeratorLabel} ÷ ${calc.denominatorLabel}) × 100
+                    </span>
+                    <button onclick="removePercentageCalculation(${idx})" class="btn-remove" style="padding: 5px 10px; font-size: 12px;">Remove</button>
+                </div>`;
+            });
+
+            html += '</div>';
+            listEl.innerHTML = html;
+        }
+
+        function removePercentageCalculation(idx) {
+            percentageCalculations.splice(idx, 1);
+            updatePercentageList();
+        }
+
+        // ==================== Data Extraction ====================
+        function extractData() {
+            const statusEl = document.getElementById('extract-status');
+
+            // Get selected geography columns
+            const selectedGeoCols = Array.from(document.querySelectorAll('#geo-columns input:checked'))
+                .map(cb => parseInt(cb.value));
+
+            // Get selected data columns
+            let selectedDataCols = Array.from(document.querySelectorAll('#data-columns input:checked'))
+                .map(cb => parseInt(cb.value));
+
+            // Automatically include columns used in percentage calculations
+            percentageCalculations.forEach(calc => {
+                if (!selectedDataCols.includes(calc.numeratorIdx)) {
+                    selectedDataCols.push(calc.numeratorIdx);
+                    console.log('Auto-including numerator column:', columnHeaders[calc.numeratorIdx]);
+                }
+                if (!selectedDataCols.includes(calc.denominatorIdx)) {
+                    selectedDataCols.push(calc.denominatorIdx);
+                    console.log('Auto-including denominator column:', columnHeaders[calc.denominatorIdx]);
+                }
+            });
+
+            // Get selected rows
+            const selectedRows = Array.from(document.querySelectorAll('#row-checkboxes input:checked'))
+                .map(cb => parseInt(cb.value));
+
+            if (selectedGeoCols.length === 0 && dataSource === 'excel') {
+                statusEl.innerHTML = '<div class="status error">Please select at least one geography column</div>';
+                return;
+            }
+
+            if (selectedDataCols.length === 0) {
+                statusEl.innerHTML = '<div class="status error">Please select at least one data column</div>';
+                return;
+            }
+
+            statusEl.innerHTML = '<div class="status info">Extracting data... <span class="loading"></span></div>';
+
+            try {
+                extractedData = [];
+
+                if (dataSource === 'api') {
+                    // Extract from API data (already in rows)
+                    const headers = sheetData[0];
+                    const allSelectedCols = [...new Set([...selectedGeoCols, ...selectedDataCols])].sort((a, b) => a - b);
+
+                    sheetData.slice(1).forEach(row => {
+                        const extractedRow = {};
+                        allSelectedCols.forEach(colIdx => {
+                            const header = headers[colIdx] || `Column_${colIdx}`;
+                            extractedRow[header] = row[colIdx];
+                        });
+                        extractedData.push(extractedRow);
+                    });
+                } else {
+                    // Extract from Excel data
+                    if (selectedRows.length === 0) {
+                        statusEl.innerHTML = '<div class="status error">Please select at least one row</div>';
+                        return;
+                    }
+
+                    selectedRows.forEach(rowIdx => {
+                        const row = sheetData[rowIdx];
+                        if (!row) return;
+
+                        const extractedRow = {};
+
+                        // Add geography columns
+                        selectedGeoCols.forEach(colIdx => {
+                            const header = columnHeaders[colIdx] || `Geography_${colIdx}`;
+                            extractedRow[header] = row[colIdx];
+                        });
+
+                        // Add data columns
+                        selectedDataCols.forEach(colIdx => {
+                            const header = columnHeaders[colIdx] || `Data_${colIdx}`;
+                            extractedRow[header] = row[colIdx];
+                        });
+
+                        extractedData.push(extractedRow);
+                    });
+                }
+
+                // Apply percentage calculations
+                if (percentageCalculations.length > 0) {
+                    console.log('Applying', percentageCalculations.length, 'percentage calculations');
+
+                    percentageCalculations.forEach((calc, idx) => {
+                        const numHeader = columnHeaders[calc.numeratorIdx];
+                        const denHeader = columnHeaders[calc.denominatorIdx];
+
+                        console.log(`Calculation ${idx + 1}: ${calc.label}`);
+                        console.log(`  Numerator: ${numHeader} (index ${calc.numeratorIdx})`);
+                        console.log(`  Denominator: ${denHeader} (index ${calc.denominatorIdx})`);
+
+                        let successCount = 0;
+                        let failCount = 0;
+
+                        extractedData.forEach((row, rowIdx) => {
+                            const numValue = row[numHeader];
+                            const denValue = row[denHeader];
+
+                            // Log first row for debugging
+                            if (rowIdx === 0) {
+                                console.log(`  First row numerator value: ${numValue}`);
+                                console.log(`  First row denominator value: ${denValue}`);
+                            }
+
+                            const numerator = parseFloat(numValue);
+                            const denominator = parseFloat(denValue);
+
+                            if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
+                                row[calc.label] = ((numerator / denominator) * 100).toFixed(2);
+                                successCount++;
+                            } else {
+                                row[calc.label] = '';
+                                failCount++;
+                            }
+                        });
+
+                        console.log(`  Success: ${successCount}, Failed: ${failCount}`);
+                    });
+                }
+
+                let statusMsg = `Successfully extracted ${extractedData.length} rows`;
+                if (percentageCalculations.length > 0) {
+                    statusMsg += ` with ${percentageCalculations.length} calculated percentage column${percentageCalculations.length > 1 ? 's' : ''}`;
+                }
+                statusEl.innerHTML = `<div class="status success">${statusMsg}</div>`;
+                displayResults();
+
+            } catch (err) {
+                console.error('Extraction error:', err);
+                statusEl.innerHTML = `<div class="status error">Error extracting data: ${err.message}</div>`;
+            }
+        }
+
+        function displayResults() {
+            const resultsSection = document.getElementById('results-section');
+            const resultsContainer = document.getElementById('results-container');
+
+            if (extractedData.length === 0) {
+                resultsSection.classList.add('hidden');
+                return;
+            }
+
+            resultsSection.classList.remove('hidden');
+
+            const headers = Object.keys(extractedData[0]);
+            let html = '<table class="results-table"><thead><tr>';
+            headers.forEach(h => html += `<th>${h}</th>`);
+            html += '</tr></thead><tbody>';
+
+            extractedData.forEach(row => {
+                html += '<tr>';
+                headers.forEach(h => {
+                    const val = row[h];
+                    html += `<td>${val !== null && val !== undefined ? val : ''}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            resultsContainer.innerHTML = html;
+        }
+
+        // ==================== Export Functions ====================
+        function formatOutput(data, separator = '\t') {
+            if (data.length === 0) return '';
+
+            const headers = Object.keys(data[0]);
+            const lines = [headers.join(separator)];
+
+            data.forEach(row => {
+                const values = headers.map(h => {
+                    const val = row[h];
+                    if (val === null || val === undefined) return '';
+                    // Escape separator if present in value
+                    if (separator === ',' && String(val).includes(',')) {
+                        return `"${val}"`;
+                    }
+                    return val;
+                });
+                lines.push(values.join(separator));
+            });
+
+            return lines.join('\n');
+        }
+
+        function copyToClipboard() {
+            const text = formatOutput(extractedData, '\t');
+            navigator.clipboard.writeText(text).then(() => {
+                document.getElementById('extract-status').innerHTML = '<div class="status success">Copied to clipboard!</div>';
+            }).catch(err => {
+                document.getElementById('extract-status').innerHTML = `<div class="status error">Failed to copy: ${err.message}</div>`;
+            });
+        }
+
+        function exportCSV() {
+            const text = formatOutput(extractedData, ',');
+            const blob = new Blob([text], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'acs-data-export.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(extractedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Extracted Data');
+            XLSX.writeFile(wb, 'acs-data-export.xlsx');
+        }
+    </script>
+</body>
+</html>
