@@ -78,9 +78,16 @@ TABLES = {
         'source_note': 'Source: American Community Survey'
     },
     'RB039': {
-        'table_id': 'B08303',
-        'name': 'Metropolitan Commuting',
+        'table_id': 'S0801',
+        'name': 'Metropolitan Commuting - Mean Travel Time',
         'sheet_name': 'Metropolitan Commuting',
+        'geography': 'metropolitan statistical area/micropolitan statistical area:*',
+        'source_note': 'Source: U.S. Census Bureau'
+    },
+    'RB039B': {
+        'table_id': 'S0801',
+        'name': 'Metropolitan Commuting - Mode of Transportation',
+        'sheet_name': 'Mode of Transportation',
         'geography': 'metropolitan statistical area/micropolitan statistical area:*',
         'source_note': 'Source: U.S. Census Bureau'
     },
@@ -92,7 +99,7 @@ TABLES = {
         'source_note': 'Source: U.S. Census Bureau'
     },
     'RB044': {
-        'table_id': 'S2702',
+        'table_id': 'S2701',
         'name': '% Without Health Insurance',
         'sheet_name': '% WO Health Insurance by State',
         'geography': 'state:*',
@@ -190,15 +197,26 @@ def fetch_acs_data(table_id: str, year: int, survey_type: str, geography: str, a
     return None, None
 
 
-def find_variable_by_label(var_labels: Dict, search_terms: List[str]) -> Optional[str]:
-    """Find a variable code by searching for terms in its label."""
+def find_variable_by_label(var_labels: Dict, search_terms: List[str], exclude_terms: List[str] = None) -> Optional[str]:
+    """Find a variable code by searching for terms in its label, optionally excluding terms."""
+    if exclude_terms is None:
+        exclude_terms = []
+
     for var_code, var_info in var_labels.items():
         if not var_code.endswith('E'):  # Only estimate columns
             continue
 
         label = var_info.get('label', '').lower()
-        if all(term.lower() in label for term in search_terms):
-            return var_code
+
+        # Check if all search terms are in the label
+        if not all(term.lower() in label for term in search_terms):
+            continue
+
+        # Check if any exclude terms are in the label
+        if any(term.lower() in label for term in exclude_terms):
+            continue
+
+        return var_code
 
     return None
 
@@ -216,14 +234,26 @@ def process_rb002_age_groups(data: List, var_labels: Dict) -> List[Dict]:
     headers = data[0]
     rows = data[1:]
 
-    # Find variable indices for age groups (looking for percentage estimates)
+    # Find variable indices for age groups (looking for percentage of TOTAL population, not male/female)
+    # Exclude "male" and "female" to get the C02 column (Percent!!) instead of C04/C06 (Percent Male/Female)
+    exclude = ['male', 'female']
+
+    # These age groups exist as single categories
     age_groups = {
-        '<18': find_variable_by_label(var_labels, ['under 18', 'percent']),
-        '18-24': find_variable_by_label(var_labels, ['18 to 24', 'percent']),
-        '25-44': find_variable_by_label(var_labels, ['25 to 44', 'percent']),
-        '45-64': find_variable_by_label(var_labels, ['45 to 64', 'percent']),
-        '>64': find_variable_by_label(var_labels, ['65 years', 'percent'])
+        '<18': find_variable_by_label(var_labels, ['percent', 'total population', 'under 18'], exclude),
+        '18-24': find_variable_by_label(var_labels, ['percent', 'total population', '18 to 24'], exclude),
+        '>64': find_variable_by_label(var_labels, ['percent', 'total population', '65 years and over'], exclude)
     }
+
+    # These need to be calculated by summing 5-year age ranges
+    age_25_29 = find_variable_by_label(var_labels, ['percent', 'total population', '25 to 29'], exclude)
+    age_30_34 = find_variable_by_label(var_labels, ['percent', 'total population', '30 to 34'], exclude)
+    age_35_39 = find_variable_by_label(var_labels, ['percent', 'total population', '35 to 39'], exclude)
+    age_40_44 = find_variable_by_label(var_labels, ['percent', 'total population', '40 to 44'], exclude)
+    age_45_49 = find_variable_by_label(var_labels, ['percent', 'total population', '45 to 49'], exclude)
+    age_50_54 = find_variable_by_label(var_labels, ['percent', 'total population', '50 to 54'], exclude)
+    age_55_59 = find_variable_by_label(var_labels, ['percent', 'total population', '55 to 59'], exclude)
+    age_60_64 = find_variable_by_label(var_labels, ['percent', 'total population', '60 to 64'], exclude)
 
     # Get column indices
     name_idx = headers.index('NAME') if 'NAME' in headers else 0
@@ -234,6 +264,7 @@ def process_rb002_age_groups(data: List, var_labels: Dict) -> List[Dict]:
 
         row_data = {'State': state_name}
 
+        # Process simple age groups
         for age_label, var_code in age_groups.items():
             if var_code and var_code in headers:
                 idx = headers.index(var_code)
@@ -242,6 +273,28 @@ def process_rb002_age_groups(data: List, var_labels: Dict) -> List[Dict]:
                     row_data[f'%{age_label}'] = float(value) if value else None
                 except:
                     row_data[f'%{age_label}'] = None
+
+        # Calculate 25-44 by summing individual age ranges
+        sum_25_44 = 0
+        for var_code in [age_25_29, age_30_34, age_35_39, age_40_44]:
+            if var_code and var_code in headers:
+                idx = headers.index(var_code)
+                try:
+                    sum_25_44 += float(row[idx]) if row[idx] else 0
+                except:
+                    pass
+        row_data['%25-44'] = sum_25_44 if sum_25_44 > 0 else None
+
+        # Calculate 45-64 by summing individual age ranges
+        sum_45_64 = 0
+        for var_code in [age_45_49, age_50_54, age_55_59, age_60_64]:
+            if var_code and var_code in headers:
+                idx = headers.index(var_code)
+                try:
+                    sum_45_64 += float(row[idx]) if row[idx] else 0
+                except:
+                    pass
+        row_data['%45-64'] = sum_45_64 if sum_45_64 > 0 else None
 
         result.append(row_data)
 
@@ -265,10 +318,12 @@ def process_rb032_education(data: List, var_labels: Dict) -> List[Dict]:
     name_idx = headers.index('NAME') if 'NAME' in headers else 0
 
     # Find percent columns for education levels (population 25+)
-    # Looking for variables with "percent" in the label
-    hs_var = find_variable_by_label(var_labels, ['high school', 'percent', '25'])
-    bachelors_var = find_variable_by_label(var_labels, ['bachelor', 'percent', '25'])
-    advanced_var = find_variable_by_label(var_labels, ['graduate', 'professional', 'percent', '25'])
+    # Exclude male/female to get C02 column (total population, not by gender)
+    # Exclude age-specific groups like "25 to 34" to get all "25 years and over"
+    exclude = ['male', 'female', '25 to 34', '35 to 44', '45 to 64', '65 years and over', 'earnings', 'median']
+    hs_var = find_variable_by_label(var_labels, ['high school graduate or higher', 'percent', '25 years and over'], exclude)
+    bachelors_var = find_variable_by_label(var_labels, ['bachelor', 'or higher', 'percent', '25 years and over'], exclude)
+    advanced_var = find_variable_by_label(var_labels, ['graduate', 'professional', 'percent', '25 years and over'], exclude)
 
     result = []
     for row in rows:
@@ -325,7 +380,7 @@ def process_rb032_education(data: List, var_labels: Dict) -> List[Dict]:
 
 def process_rb039_commuting(data: List, var_labels: Dict) -> List[Dict]:
     """
-    Process B08303 - Metropolitan Commuting
+    Process S0801 - Metropolitan Commuting - Mean Travel Time
 
     Output: Rank | Metro Area | Average Commute Time
     """
@@ -334,8 +389,9 @@ def process_rb039_commuting(data: List, var_labels: Dict) -> List[Dict]:
 
     name_idx = headers.index('NAME') if 'NAME' in headers else 0
 
-    # Find mean travel time variable
-    mean_var = find_variable_by_label(var_labels, ['mean travel time'])
+    # Find mean travel time variable from total population (exclude male/female)
+    exclude = ['male', 'female']
+    mean_var = find_variable_by_label(var_labels, ['mean travel time', 'workers 16 years'], exclude)
 
     result = []
     for row in rows:
@@ -362,6 +418,62 @@ def process_rb039_commuting(data: List, var_labels: Dict) -> List[Dict]:
     return result
 
 
+def process_rb039b_mode_of_transportation(data: List, var_labels: Dict) -> List[Dict]:
+    """
+    Process S0801 - Mode of Transportation
+
+    Output: Rank | Metro Area | % Drove Alone | % Carpooled | % Public Transit
+    """
+    headers = data[0]
+    rows = data[1:]
+
+    name_idx = headers.index('NAME') if 'NAME' in headers else 0
+
+    # Find mode of transportation variables from total population (exclude male/female)
+    # For carpooled, exclude the subcategories (2-person, 3-person, 4-or-more) to get the total
+    exclude = ['male', 'female', '2-person', '3-person', '4-or-more']
+    drove_alone_var = find_variable_by_label(var_labels, ['car, truck, or van', 'drove alone', 'workers 16 years'], exclude)
+    carpooled_var = find_variable_by_label(var_labels, ['car, truck, or van', 'carpooled', 'workers 16 years'], exclude)
+    public_transit_var = find_variable_by_label(var_labels, ['public transportation', 'workers 16 years'], exclude)
+
+    result = []
+    for row in rows:
+        metro_name = row[name_idx]
+
+        row_data = {'Metro Area': metro_name}
+
+        # Extract mode of transportation percentages
+        if drove_alone_var and drove_alone_var in headers:
+            idx = headers.index(drove_alone_var)
+            try:
+                row_data['% Drove Alone'] = float(row[idx]) if row[idx] else None
+            except:
+                row_data['% Drove Alone'] = None
+
+        if carpooled_var and carpooled_var in headers:
+            idx = headers.index(carpooled_var)
+            try:
+                row_data['% Carpooled'] = float(row[idx]) if row[idx] else None
+            except:
+                row_data['% Carpooled'] = None
+
+        if public_transit_var and public_transit_var in headers:
+            idx = headers.index(public_transit_var)
+            try:
+                row_data['% Public Transit'] = float(row[idx]) if row[idx] else None
+            except:
+                row_data['% Public Transit'] = None
+
+        result.append(row_data)
+
+    # Sort by % Public Transit descending and add rank
+    result.sort(key=lambda x: x.get('% Public Transit', 0) or 0, reverse=True)
+    for i, row in enumerate(result, 1):
+        row['Rank'] = i
+
+    return result
+
+
 def process_rb040_wfh(data: List, var_labels: Dict) -> List[Dict]:
     """
     Process S0801 - % Workers Who Worked From Home
@@ -373,8 +485,9 @@ def process_rb040_wfh(data: List, var_labels: Dict) -> List[Dict]:
 
     name_idx = headers.index('NAME') if 'NAME' in headers else 0
 
-    # Find work from home percentage variable
-    wfh_var = find_variable_by_label(var_labels, ['worked from home', 'percent'])
+    # Find work from home percentage variable from total population (exclude male/female)
+    exclude = ['male', 'female']
+    wfh_var = find_variable_by_label(var_labels, ['worked from home', 'workers 16 years'], exclude)
 
     result = []
     for row in rows:
@@ -403,7 +516,7 @@ def process_rb040_wfh(data: List, var_labels: Dict) -> List[Dict]:
 
 def process_rb044_health_insurance(data: List, var_labels: Dict) -> List[Dict]:
     """
-    Process S2702 - % Without Health Insurance
+    Process S2701 - % Without Health Insurance
 
     Output: Rank | State | Percent Uninsured | Age <19 | Rank | Age 19-64 | Rank | Age 65+ | Rank
     """
@@ -412,12 +525,13 @@ def process_rb044_health_insurance(data: List, var_labels: Dict) -> List[Dict]:
 
     name_idx = headers.index('NAME') if 'NAME' in headers else 0
 
-    # Find uninsured percentage variables by age group
+    # Find uninsured percentage variables by age group from S2701 C05 column (Percent Uninsured)
+    # For total, we want S2701_C05_001E which is the overall population, not subcategories
     uninsured_vars = {
-        'Total': find_variable_by_label(var_labels, ['uninsured', 'percent', 'total']),
-        '<19': find_variable_by_label(var_labels, ['uninsured', 'percent', 'under 19']),
-        '19-64': find_variable_by_label(var_labels, ['uninsured', 'percent', '19 to 64']),
-        '65+': find_variable_by_label(var_labels, ['uninsured', 'percent', '65 years'])
+        'Total': 'S2701_C05_001E',  # Direct code for overall total percent uninsured
+        '<19': find_variable_by_label(var_labels, ['percent uninsured', 'under 19 years']),
+        '19-64': find_variable_by_label(var_labels, ['percent uninsured', '19 to 64 years']),
+        '65+': find_variable_by_label(var_labels, ['percent uninsured', '65 years and older'])
     }
 
     result = []
@@ -478,11 +592,27 @@ def write_to_excel(all_data: Dict[str, List[Dict]], output_file: str):
             cell.font = Font(bold=True)
             cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
 
+        # Identify percentage columns (columns that contain percentage data)
+        percentage_columns = set()
+        for header in headers:
+            # Check if header indicates a percentage
+            if (header and (
+                header.startswith('%') or
+                'Percent' in header or
+                header in ['Completed H.S. or Higher', 'Bachelors or Higher', 'Advanced Degree'] or
+                header.isdigit()  # Year columns in WFH sheet (2024, 2021, etc.)
+            ) and header not in ['Rank', 'State', 'Metro Area']):  # Exclude non-percentage columns
+                percentage_columns.add(header)
+
         # Write data
         for row_idx, row_data in enumerate(data, 2):
             for col_idx, header in enumerate(headers, 1):
                 value = row_data.get(header)
-                ws.cell(row=row_idx, column=col_idx, value=value)
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+
+                # Format percentage columns with % symbol (values are already 0-100 scale)
+                if header in percentage_columns and isinstance(value, (int, float)):
+                    cell.number_format = '0.0"%"'  # Custom format: shows number with % but doesn't multiply by 100
 
         # Add source note in far right column
         source_col = len(headers) + 2
@@ -531,7 +661,7 @@ def main():
         )
 
         if data is None:
-            print("✗ FAILED")
+            print("[FAIL] FAILED")
             fail_count += 1
             failed_tables.append(f"{table_id} - {table_info['name']}")
             continue
@@ -544,6 +674,8 @@ def main():
                 processed = process_rb032_education(data, var_labels)
             elif table_id == 'RB039':
                 processed = process_rb039_commuting(data, var_labels)
+            elif table_id == 'RB039B':
+                processed = process_rb039b_mode_of_transportation(data, var_labels)
             elif table_id == 'RB040':
                 processed = process_rb040_wfh(data, var_labels)
             elif table_id == 'RB044':
@@ -552,11 +684,11 @@ def main():
                 processed = []
 
             all_data[table_id] = processed
-            print(f"✓ done ({len(processed)} rows)")
+            print(f"[OK] done ({len(processed)} rows)")
             success_count += 1
 
         except Exception as e:
-            print(f"✗ Processing error: {e}")
+            print(f"[ERROR] Processing error: {e}")
             fail_count += 1
             failed_tables.append(f"{table_id} - {table_info['name']}")
 
@@ -565,9 +697,9 @@ def main():
         print(f"\nWriting output to {CONFIG['output_file']}...", end=' ')
         try:
             write_to_excel(all_data, CONFIG['output_file'])
-            print("✓ done")
+            print("[OK] done")
         except Exception as e:
-            print(f"✗ Error writing Excel: {e}")
+            print(f"[FAIL] Error writing Excel: {e}")
             return
 
     # Summary
@@ -583,9 +715,9 @@ def main():
             print(f"  • {table}")
 
     if all_data:
-        print(f"\n✓ Output saved to: {CONFIG['output_file']}")
+        print(f"\n[OK] Output saved to: {CONFIG['output_file']}")
     else:
-        print("\n✗ No data was successfully processed")
+        print("\n[FAIL] No data was successfully processed")
 
     print("=" * 80)
 
