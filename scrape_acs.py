@@ -59,6 +59,153 @@ CONFIG = {
 }
 
 # ==============================================================================
+# METROPOLITAN AREA FILTER
+# ==============================================================================
+
+# Specific MSAs to include in metropolitan commuting and mode of transportation reports
+SELECTED_MSAS = [
+    'New York-Newark-Jersey City, NY-NJ',
+    'Riverside-San Bernardino-Ontario, CA',
+    'Washington-Arlington-Alexandria, DC-VA-MD-WV',
+    'Bridgeport-Stamford-Danbury, CT',
+    'San Francisco-Oakland-Fremont, CA',
+    'Atlanta-Sandy Springs-Roswell, GA',
+    'Boston-Cambridge-Newton, MA-NH',
+    'Chicago-Naperville-Elgin, IL-IN',
+    'Houston-Pasadena-The Woodlands, TX',
+    'Los Angeles-Long Beach-Anaheim, CA',
+    'Baltimore-Columbia-Towson, MD',
+    'Miami-Fort Lauderdale-West Palm Beach, FL',
+    'Tampa-St. Petersburg-Clearwater, FL',
+    'Philadelphia-Camden-Wilmington, PA-NJ-DE-MD',
+    'Orlando-Kissimmee-Sanford, FL',
+    'Seattle-Tacoma-Bellevue, WA',
+    'Dallas-Fort Worth-Arlington, TX',
+    'Nashville-Davidson--Murfreesboro--Franklin, TN',
+    'Waterbury-Shelton, CT',
+    'Birmingham, AL',
+    'Sacramento-Roseville-Folsom, CA',
+    'San Antonio-New Braunfels, TX',
+    'Denver-Aurora-Centennial, CO',
+    'Charlotte-Concord-Gastonia, NC-SC',
+    'Austin-Round Rock-San Marcos, TX',
+    'Providence-Warwick, RI-MA',
+    'Phoenix-Mesa-Chandler, AZ',
+    'Raleigh-Cary, NC',
+    'Detroit-Warren-Dearborn, MI',
+    'Jacksonville, FL',
+    'Las Vegas-Henderson-North Las Vegas, NV',
+    'Pittsburgh, PA',
+    'San Diego-Chula Vista-Carlsbad, CA',
+    'Richmond, VA',
+    'Indianapolis-Carmel-Greenwood, IN',
+    'Portland-Vancouver-Hillsboro, OR-WA',
+    'Virginia Beach-Chesapeake-Norfolk, VA-NC',
+    'St. Louis, MO-IL',
+    'Memphis, TN-MS-AR',
+    'Louisville/Jefferson County, KY-IN',
+    'Hartford-West Hartford-East Hartford, CT',
+    'Minneapolis-St. Paul-Bloomington, MN-WI',
+    'Columbus, OH',
+    'Oklahoma City, OK',
+    'New Haven, CT',
+    'Salt Lake City-Murray, UT',
+    'Kansas City, MO-KS',
+    'Norwich-New London-Willimantic, CT',
+    'Buffalo-Cheektowaga, NY',
+    'Grand Rapids-Wyoming-Kentwood, MI',
+]
+
+def normalize_msa_name(name: str) -> str:
+    """Normalize MSA name for matching."""
+    # Remove extra spaces, convert to lowercase for comparison
+    return ' '.join(name.split()).lower()
+
+def is_selected_msa(msa_name: str) -> bool:
+    """Check if MSA is in the selected list."""
+    normalized_name = normalize_msa_name(msa_name)
+
+    # Check for exact match or partial match with selected MSAs
+    for selected_msa in SELECTED_MSAS:
+        normalized_selected = normalize_msa_name(selected_msa)
+
+        # Check if the selected MSA name is contained in the full MSA name
+        # (Census API often appends " Metro Area" or " Metropolitan Statistical Area")
+        if normalized_selected in normalized_name or normalized_name.startswith(normalized_selected):
+            return True
+
+    return False
+
+# Specific MSAs to include in work from home report (different from commuting list)
+SELECTED_WFH_MSAS = [
+    'Austin-Round Rock-San Marcos, TX',
+    'Raleigh-Cary, NC',
+    'Denver-Aurora-Centennial, CO',
+    'Washington-Arlington-Alexandria, DC-VA-MD-WV',
+    'Charlotte-Concord-Gastonia, NC-SC',
+    'Portland-Vancouver-Hillsboro, OR-WA',
+    'San Francisco-Oakland-Fremont, CA',
+    'Seattle-Tacoma-Bellevue, WA',
+    'Tampa-St. Petersburg-Clearwater, FL',
+    'Phoenix-Mesa-Chandler, AZ',
+    'Jacksonville, FL',
+    'Atlanta-Sandy Springs-Roswell, GA',
+    'Minneapolis-St. Paul-Bloomington, MN-WI',
+    'Salt Lake City-Murray, UT',
+    'Sacramento-Roseville-Folsom, CA',
+    'Boston-Cambridge-Newton, MA-NH',
+    'Orlando-Kissimmee-Sanford, FL',
+    'Nashville-Davidson--Murfreesboro--Franklin, TN',
+    'Bridgeport-Stamford-Danbury, CT',
+    'Columbus, OH',
+    'Richmond, VA',
+    'Dallas-Fort Worth-Arlington, TX',
+    'Baltimore-Columbia-Towson, MD',
+    'San Jose-Sunnyvale-Santa Clara, CA',
+    'San Diego-Chula Vista-Carlsbad, CA',
+    'Kansas City, MO-KS',
+    'Chicago-Naperville-Elgin, IL-IN',
+    'Pittsburgh, PA',
+    'Indianapolis-Carmel-Greenwood, IN',
+    'Los Angeles-Long Beach-Anaheim, CA',
+    'San Antonio-New Braunfels, TX',
+    'Miami-Fort Lauderdale-West Palm Beach, FL',
+    'Hartford-West Hartford-East Hartford, CT',
+    'St. Louis, MO-IL',
+    'Detroit-Warren-Dearborn, MI',
+    'New York-Newark-Jersey City, NY-NJ',
+    'Cincinnati, OH-KY-IN',
+    'New Haven, CT',
+    'Houston-Pasadena-The Woodlands, TX',
+    'Louisville/Jefferson County, KY-IN',
+    'Grand Rapids-Wyoming-Kentwood, MI',
+    'Las Vegas-Henderson-North Las Vegas, NV',
+    'Virginia Beach-Chesapeake-Norfolk, VA-NC',
+    'Norwich-New London-Willimantic, CT',
+    'Buffalo-Cheektowaga, NY',
+    'Providence-Warwick, RI-MA',
+    'Birmingham, AL',
+    'Oklahoma City, OK',
+    'Memphis, TN-MS-AR',
+    'Fresno, CA',
+]
+
+def is_selected_wfh_msa(msa_name: str) -> bool:
+    """Check if MSA is in the work from home selected list."""
+    normalized_name = normalize_msa_name(msa_name)
+
+    # Check for exact match or partial match with selected MSAs
+    for selected_msa in SELECTED_WFH_MSAS:
+        normalized_selected = normalize_msa_name(selected_msa)
+
+        # Check if the selected MSA name is contained in the full MSA name
+        # (Census API often appends " Metro Area" or " Metropolitan Statistical Area")
+        if normalized_selected in normalized_name or normalized_name.startswith(normalized_selected):
+            return True
+
+    return False
+
+# ==============================================================================
 # ACS TABLE DEFINITIONS
 # ==============================================================================
 
@@ -397,6 +544,10 @@ def process_rb039_commuting(data: List, var_labels: Dict) -> List[Dict]:
     for row in rows:
         metro_name = row[name_idx]
 
+        # Filter to only include selected MSAs
+        if not is_selected_msa(metro_name):
+            continue
+
         avg_commute = None
         if mean_var and mean_var in headers:
             idx = headers.index(mean_var)
@@ -439,6 +590,10 @@ def process_rb039b_mode_of_transportation(data: List, var_labels: Dict) -> List[
     result = []
     for row in rows:
         metro_name = row[name_idx]
+
+        # Filter to only include selected MSAs
+        if not is_selected_msa(metro_name):
+            continue
 
         row_data = {'Metro Area': metro_name}
 
@@ -492,6 +647,10 @@ def process_rb040_wfh(data: List, var_labels: Dict) -> List[Dict]:
     result = []
     for row in rows:
         metro_name = row[name_idx]
+
+        # Filter to only include selected WFH MSAs (different list from commuting)
+        if not is_selected_wfh_msa(metro_name):
+            continue
 
         wfh_pct = None
         if wfh_var and wfh_var in headers:
